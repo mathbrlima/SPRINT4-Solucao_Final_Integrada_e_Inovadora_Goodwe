@@ -95,24 +95,29 @@ Observação sobre preço: dividindo o custo pelos kWh de cada sessão do histó
 
 Os dados exibidos são de demonstração do protótipo, com usuários, empresas e veículos cadastrados para o teste. A fatia solar aparece como 30% do consumo em todas as sessões, o que indica que ela é um parâmetro do modelo e não uma medição de campo, e o CO₂ evitado é calculado a partir dela com o fator de cerca de 0,082 kg por kWh solar.
 
-### Capturas do sistema funcionando
+## Capturas do sistema funcionando
 
-App do motorista:
+### App do motorista:
 
-![App — tela inicial](docs/imagens/usuario1.png)
-![App — configurar recarga](docs/imagens/02_app_configurar_recarga.png)
-![App — carregando](docs/imagens/03_app_carregando.png)
+### Interface APP
+
+![App — tela inicial](docs/img/usuario1.png)
+![App — tela incial](docs/img/usuario2.png)
+
+### Histórico
+
+![App — histórico](docs/img/usuario3.png)
 
 Painel do administrador:
 
-![Visão geral](docs/imagens/04_painel_visao_geral.png)
-![Simulador — entrada](docs/imagens/05_simulador_entrada.png)
-![Simulador — resultado](docs/imagens/06_simulador_resultado.png)
-![Consumo por dia](docs/imagens/07_consumo_dia.png)
-![Ranking de consumo](docs/imagens/09_ranking.png)
-![Sustentabilidade](docs/imagens/10_sustentabilidade.png)
-![Histórico de recargas](docs/imagens/11_historico.png)
-![Usuários (resumo)](docs/imagens/png)
+![Visão geral](docs/img/admin1.png)
+![Simulador — entrada](docs/img/admin2.png)
+![Simulador — resultado](docs/img/admin3.png)
+![Consumo por dia](docs/img/admin4.png)
+![Ranking de consumo](docs/img/admin5.png)
+![Sustentabilidade](docs/img/admin6.png)
+![Histórico de recargas](docs/img/admin7.png)
+![Usuários (resumo)](docs/img/admin8.png)
 
 ## 5. Alinhamento ao desafio GoodWe e à disciplina
 

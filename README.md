@@ -101,8 +101,7 @@ Os dados exibidos são de demonstração do protótipo, com usuários, empresas 
 
 ### Interface APP
 
-![App — tela inicial](docs/img/usuario1.png)
-![App — tela incial](docs/img/usuario2.png)
+![App — tela inicial](docs/img/usuario1.png)   ![App — tela incial](docs/img/usuario2.png)
 
 ### Histórico
 

@@ -13,8 +13,6 @@ Solução final integrada da Sprint 4, Desafio GoodWe — FIAP.
 
 Vídeo de demonstração (YouTube, não listado): link informado no arquivo entrega.txt.
 
-Painel do administrador publicado: https://chargeflow-admin.onrender.com (acesso por e-mail e senha). Observação: em hospedagem gratuita o serviço pode hibernar, e a primeira abertura pode demorar cerca de um minuto.
-
 ## 1. O problema e a proposta
 
 Edifícios residenciais e corporativos têm uma potência contratada limitada. Quando vários moradores ou funcionários plugam veículos elétricos ao mesmo tempo, o prédio corre o risco de estourar o limite, pagar demanda de ponta ou simplesmente deixar quem mais precisa sem carga. O ChargeFlow resolve isso com um sistema que enxerga a potência total do prédio, distribui essa potência entre os carros conectados com um algoritmo de prioridade e mostra, para o motorista e para o administrador, quanto foi consumido, quanto custou e quanto veio de fonte renovável.
@@ -101,7 +99,7 @@ Os dados exibidos são de demonstração do protótipo, com usuários, empresas 
 
 App do motorista:
 
-![App — tela inicial](docs/imagens/01_app_home.png)
+![App — tela inicial](docs/imagens/usuario1.png)
 ![App — configurar recarga](docs/imagens/02_app_configurar_recarga.png)
 ![App — carregando](docs/imagens/03_app_carregando.png)
 
@@ -114,7 +112,7 @@ Painel do administrador:
 ![Ranking de consumo](docs/imagens/09_ranking.png)
 ![Sustentabilidade](docs/imagens/10_sustentabilidade.png)
 ![Histórico de recargas](docs/imagens/11_historico.png)
-![Usuários (resumo)](docs/imagens/12_usuarios_resumo.png)
+![Usuários (resumo)](docs/imagens/png)
 
 ## 5. Alinhamento ao desafio GoodWe e à disciplina
 

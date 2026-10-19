@@ -168,7 +168,7 @@ Limitações a declarar: o cenário de simulação gravado não leva o prédio a
 
 ## 7. Tecnologias e referências
 
-Aplicação web hospedada no Render (https://render.com); protocolos de recarga considerados na arquitetura: OCPP, OCPI e ISO 15118; equipamentos GoodWe (inversor híbrido e bateria) como referência de integração (https://www.goodwe.com).
+O frontend foi construído com JavaScript, HTML e CSS, a aplicação está hospedada na nuvem pelo Render (https://render.com) e o banco de dados é um PostgreSQL gerenciado na plataforma Neon (https://neon.tech), que guarda usuários, estações, saldos e o histórico de recargas. Os protocolos de recarga considerados na arquitetura são OCPP, OCPI e ISO 15118, que permitiriam conectar carregadores reais de diferentes fabricantes ao núcleo de gestão. Como referência de integração para geração e armazenamento, o projeto usa os equipamentos GoodWe, o inversor híbrido e a bateria (https://www.goodwe.com), cuja telemetria alimentaria o algoritmo de distribuição de potência. Os dados de sessões de recarga, consumo em kWh, custo em reais e CO₂ evitado são exibidos em gráficos de consumo, ranking e painel de sustentabilidade.
 
 ## 8. Estrutura do repositório
 
@@ -176,9 +176,5 @@ Aplicação web hospedada no Render (https://render.com); protocolos de recarga 
 /
 ├── README.md
 ├── docs/
-│   └── img/       capturas do sistema funcionando
+│   └── img/       capturas de tela do sistema funcionando
 ```
-
-## 9. Como executar
-
-Abra o painel em https://chargeflow-admin.onrender.com (a primeira abertura pode levar cerca de um minuto no plano gratuito do Render) e entre com o e-mail e a senha de administrador. O fluxo do motorista aparece no vídeo de demonstração.

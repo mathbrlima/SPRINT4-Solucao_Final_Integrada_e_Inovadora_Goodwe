@@ -175,9 +175,8 @@ Aplicação web hospedada no Render (https://render.com); protocolos de recarga 
 ```
 /
 ├── README.md
-├── src/               código-fonte do app, do painel e do algoritmo
 ├── docs/
-│   └── imagens/       capturas do sistema funcionando
+│   └── img/       capturas do sistema funcionando
 ```
 
 ## 9. Como executar

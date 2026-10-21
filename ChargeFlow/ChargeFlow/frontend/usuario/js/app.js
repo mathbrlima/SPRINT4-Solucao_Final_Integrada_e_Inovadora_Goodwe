@@ -1,0 +1,645 @@
+// Ordem de prioridade pra descobrir onde esta a API:
+// 1. parametro ?api=<url> na propria pagina (usado em demos por tunel, onde
+//    cada servico ganha um dominio aleatorio diferente);
+// 2. localhost/rede local -> mesmo host da pagina, na porta 8000 (dev);
+// 3. qualquer outro dominio (ex: hospedagem definitiva) -> API de producao.
+function calcularApiBase() {
+  const override = new URLSearchParams(window.location.search).get("api");
+  if (override) return override;
+
+  const host = window.location.hostname;
+  const ehLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+  if (ehLocal) return `http://${host}:8000`;
+
+  return "https://chargeflow-api.onrender.com";
+}
+const API_BASE = calcularApiBase();
+
+const state = {
+  token: localStorage.getItem("cf_token") || null,
+  usuario: JSON.parse(localStorage.getItem("cf_usuario") || "null"),
+  veiculos: [],
+  veiculoAtual: null,
+  estacaoSelecionada: null,
+  sessaoAtivaId: null,
+  pollSessaoTimer: null,
+  pollFilaTimer: null,
+  modoNovoVeiculo: false,
+  saldoAtual: 0,
+};
+
+async function api(path, { method = "GET", body = null } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (state.token) headers["Authorization"] = `Bearer ${state.token}`;
+
+  const resp = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  let data = null;
+  try { data = await resp.json(); } catch (e) { /* sem corpo */ }
+
+  if (!resp.ok) {
+    const mensagem = (data && data.detail) ? data.detail : `Erro ${resp.status}`;
+    const erro = new Error(mensagem);
+    erro.status = resp.status;
+    throw erro;
+  }
+  return data;
+}
+
+function mostrar(tela) {
+  document.querySelectorAll(".tela").forEach((el) => el.classList.add("hidden"));
+  document.getElementById(`tela-${tela}`).classList.remove("hidden");
+
+  const nav = document.getElementById("bottom-nav");
+  nav.classList.toggle("hidden", !state.token);
+
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.nav === tela);
+  });
+
+  document.getElementById("btn-sair").classList.toggle("hidden", !state.token);
+}
+
+function formatarMoeda(valor) {
+  return `R$ ${Number(valor).toFixed(2).replace(".", ",")}`;
+}
+
+function rotuloPrioridade(p) {
+  return { ALTA: "Alta", MEDIA: "Média", BAIXA: "Baixa" }[p] || p;
+}
+
+// ---------------- AUTENTICACAO ----------------
+
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    const alvo = btn.dataset.tab;
+    document.getElementById("form-login").classList.toggle("hidden", alvo !== "login");
+    document.getElementById("form-registro").classList.toggle("hidden", alvo !== "registro");
+  });
+});
+
+document.getElementById("form-login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById("login-erro");
+  erroEl.textContent = "";
+  try {
+    const dados = await api("/api/auth/login", {
+      method: "POST",
+      body: {
+        email: document.getElementById("login-email").value,
+        senha: document.getElementById("login-senha").value,
+      },
+    });
+    aoAutenticar(dados);
+  } catch (err) {
+    erroEl.textContent = err.message;
+  }
+});
+
+document.getElementById("form-registro").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById("reg-erro");
+  erroEl.textContent = "";
+  try {
+    const dados = await api("/api/auth/registrar", {
+      method: "POST",
+      body: {
+        nome: document.getElementById("reg-nome").value,
+        email: document.getElementById("reg-email").value,
+        senha: document.getElementById("reg-senha").value,
+        empresa: document.getElementById("reg-empresa").value || null,
+        telefone: document.getElementById("reg-telefone").value || null,
+      },
+    });
+    aoAutenticar(dados);
+  } catch (err) {
+    erroEl.textContent = err.message;
+  }
+});
+
+function aoAutenticar(dados) {
+  state.token = dados.access_token;
+  state.usuario = dados.usuario;
+  localStorage.setItem("cf_token", state.token);
+  localStorage.setItem("cf_usuario", JSON.stringify(state.usuario));
+  depoisDoLogin();
+}
+
+document.getElementById("btn-sair").addEventListener("click", () => {
+  state.token = null;
+  state.usuario = null;
+  state.veiculos = [];
+  state.veiculoAtual = null;
+  clearInterval(state.pollSessaoTimer);
+  clearInterval(state.pollFilaTimer);
+  localStorage.removeItem("cf_token");
+  localStorage.removeItem("cf_usuario");
+  mostrar("auth");
+});
+
+// ---------------- VEICULO ----------------
+
+document.getElementById("btn-trocar-veiculo").addEventListener("click", () => {
+  state.modoNovoVeiculo = true;
+  document.getElementById("btn-cancelar-veiculo").classList.remove("hidden");
+  document.getElementById("form-veiculo").reset();
+  document.getElementById("v-bateria").value = 50;
+  document.getElementById("v-limite-percent").value = 80;
+  mostrar("veiculo");
+});
+
+document.getElementById("btn-cancelar-veiculo").addEventListener("click", () => {
+  document.getElementById("btn-cancelar-veiculo").classList.add("hidden");
+  mostrar("home");
+});
+
+document.getElementById("form-veiculo").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById("v-erro");
+  erroEl.textContent = "";
+  try {
+    const veiculo = await api("/api/veiculos", {
+      method: "POST",
+      body: {
+        placa: document.getElementById("v-placa").value.toUpperCase(),
+        modelo: document.getElementById("v-modelo").value,
+        marca: document.getElementById("v-marca").value || null,
+        capacidade_bateria_kwh: Number(document.getElementById("v-capacidade").value),
+        bateria_atual_percent: Number(document.getElementById("v-bateria").value),
+        limite_percent_padrao: Number(document.getElementById("v-limite-percent").value || 80),
+      },
+    });
+    state.veiculos.push(veiculo);
+    state.veiculoAtual = veiculo;
+    document.getElementById("btn-cancelar-veiculo").classList.add("hidden");
+    await loadHome();
+    mostrar("home");
+  } catch (err) {
+    erroEl.textContent = err.message;
+  }
+});
+
+function renderVeiculoCard() {
+  const container = document.getElementById("home-veiculo-card");
+  if (!state.veiculoAtual) {
+    container.innerHTML = `<p class="vazio">Nenhum veículo cadastrado</p>`;
+    return;
+  }
+  const v = state.veiculoAtual;
+  const opcoes = state.veiculos
+    .map((x) => `<option value="${x.id}" ${x.id === v.id ? "selected" : ""}>${x.placa} - ${x.modelo}</option>`)
+    .join("");
+
+  container.innerHTML = `
+    <div style="width:100%">
+      ${state.veiculos.length > 1 ? `<select id="seletor-veiculo" style="margin-bottom:10px;width:100%;padding:8px;border-radius:8px;border:1px solid var(--borda)">${opcoes}</select>` : ""}
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="placa">${v.placa}</div>
+          <div class="modelo">${v.marca ? v.marca + " " : ""}${v.modelo}</div>
+        </div>
+        <div class="bateria">${Number(v.bateria_atual_percent).toFixed(0)}%</div>
+      </div>
+    </div>`;
+
+  const seletor = document.getElementById("seletor-veiculo");
+  if (seletor) {
+    seletor.addEventListener("change", (e) => {
+      state.veiculoAtual = state.veiculos.find((x) => x.id === Number(e.target.value));
+      renderVeiculoCard();
+      carregarEstimativaHome();
+    });
+  }
+}
+
+// ---------------- SALDO ----------------
+
+async function carregarSaldo() {
+  const s = await api("/api/saldo");
+  state.saldoAtual = s.saldo_atual;
+  document.getElementById("home-saldo-valor").textContent = formatarMoeda(s.saldo_atual);
+  return s.saldo_atual;
+}
+
+async function carregarEstimativaHome() {
+  const elTexto = document.getElementById("home-estimativa-texto");
+  if (!state.veiculoAtual) {
+    elTexto.textContent = "";
+    return;
+  }
+  try {
+    const est = await api(`/api/saldo/estimativa/${state.veiculoAtual.id}`);
+    elTexto.textContent =
+      `Com esse saldo, dá pra carregar o ${state.veiculoAtual.modelo} até ${est.percentual_maximo_alcancavel.toFixed(0)}%`;
+  } catch (err) {
+    elTexto.textContent = "";
+  }
+}
+
+document.getElementById("btn-recarregar-saldo").addEventListener("click", () => {
+  document.getElementById("recarga-saldo-atual").textContent = formatarMoeda(state.saldoAtual);
+  document.getElementById("recarga-erro").textContent = "";
+  document.getElementById("form-recarga-saldo").reset();
+  mostrar("recarga-saldo");
+});
+
+document.getElementById("btn-cancelar-recarga").addEventListener("click", () => mostrar("home"));
+
+document.querySelectorAll(".chip-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.getElementById("recarga-valor").value = btn.dataset.valor;
+  });
+});
+
+document.getElementById("form-recarga-saldo").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById("recarga-erro");
+  erroEl.textContent = "";
+  try {
+    const resp = await api("/api/saldo/recarregar", {
+      method: "POST",
+      body: { valor: Number(document.getElementById("recarga-valor").value) },
+    });
+    state.saldoAtual = resp.saldo_atual;
+    mostrar("home");
+    loadHome();
+  } catch (err) {
+    erroEl.textContent = err.message;
+  }
+});
+
+// ---------------- HOME / ESTACOES / POTENCIA ----------------
+
+async function loadHome() {
+  renderVeiculoCard();
+  await Promise.all([carregarEstacoes(), carregarSaldo()]);
+  await carregarEstimativaHome();
+}
+
+async function carregarEstacoes() {
+  const estacoes = await api("/api/estacoes");
+  const container = document.getElementById("lista-estacoes");
+  if (estacoes.length === 0) {
+    container.innerHTML = `<p class="vazio">Nenhuma estação cadastrada</p>`;
+    return;
+  }
+  container.innerHTML = estacoes
+    .map(
+      (e) => `
+      <div class="estacao-item ${e.status}" data-id="${e.id}">
+        <div>
+          <div class="nome">${e.nome}</div>
+          <div class="local">${e.localizacao || ""} - ${Number(e.potencia_max_kw)} kW</div>
+        </div>
+        <div class="status-tag status-${e.status}">${e.status}</div>
+      </div>`
+    )
+    .join("");
+
+  container.querySelectorAll(".estacao-item.disponivel").forEach((el) => {
+    el.addEventListener("click", () => {
+      const estacao = estacoes.find((e) => e.id === Number(el.dataset.id));
+      selecionarEstacao(estacao);
+    });
+  });
+
+  container.querySelectorAll(".estacao-item:not(.disponivel)").forEach((el) => {
+    el.addEventListener("click", () => {
+      const estacao = estacoes.find((e) => e.id === Number(el.dataset.id));
+      mostrarDetalhesEstacao(estacao);
+    });
+  });
+}
+
+function mostrarDetalhesEstacao(estacao) {
+  document.getElementById("modal-estacao-nome").textContent = estacao.nome;
+  document.getElementById("modal-estacao-local").textContent = estacao.localizacao || "";
+  document.getElementById("modal-estacao-status").textContent = estacao.status;
+  document.getElementById("modal-estacao-potencia").textContent =
+    `${Number(estacao.potencia_atual_kw)} / ${Number(estacao.potencia_max_kw)} kW`;
+  document.getElementById("modal-estacao").classList.remove("hidden");
+}
+
+document.getElementById("btn-fechar-modal-estacao").addEventListener("click", () => {
+  document.getElementById("modal-estacao").classList.add("hidden");
+});
+document.getElementById("modal-estacao").addEventListener("click", (e) => {
+  if (e.target.id === "modal-estacao") e.target.classList.add("hidden");
+});
+
+document.getElementById("btn-atualizar-estacoes").addEventListener("click", carregarEstacoes);
+
+document.getElementById("btn-liberar-entrada").addEventListener("click", async () => {
+  try {
+    const resp = await api("/api/acesso/entrada", { method: "POST" });
+    alert(resp.mensagem);
+    carregarEstacoes();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// ---------------- PREFERENCIAS / INICIAR RECARGA ----------------
+
+async function selecionarEstacao(estacao) {
+  if (!state.veiculoAtual) {
+    alert("Cadastre um veículo primeiro.");
+    return;
+  }
+  if (state.saldoAtual <= 0) {
+    alert("Seu saldo está zerado. Recarregue seu saldo antes de iniciar uma recarga.");
+    return;
+  }
+  state.estacaoSelecionada = estacao;
+  document.getElementById("pref-estacao-nome").textContent = `${estacao.nome} - ${estacao.localizacao || ""}`;
+  document.getElementById("pref-limite-percent").value = state.veiculoAtual.limite_percent_padrao;
+  document.getElementById("pref-erro").textContent = "";
+  document.getElementById("pref-saldo-valor").textContent = formatarMoeda(state.saldoAtual);
+  document.getElementById("pref-estimativa-texto").textContent = "";
+  mostrar("preferencias");
+
+  try {
+    const est = await api(`/api/saldo/estimativa/${state.veiculoAtual.id}`);
+    document.getElementById("pref-estimativa-texto").textContent =
+      `Com esse saldo você chega a ${est.percentual_maximo_alcancavel.toFixed(0)}% de bateria.`;
+  } catch (err) { /* estimativa e so um complemento, ignora falha */ }
+}
+
+document.getElementById("btn-cancelar-preferencias").addEventListener("click", () => mostrar("home"));
+
+document.getElementById("form-preferencias").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById("pref-erro");
+  erroEl.textContent = "";
+  try {
+    const sessao = await api("/api/sessoes/iniciar", {
+      method: "POST",
+      body: {
+        veiculo_id: state.veiculoAtual.id,
+        estacao_id: state.estacaoSelecionada.id,
+        limite_percent: Number(document.getElementById("pref-limite-percent").value),
+      },
+    });
+    state.sessaoAtivaId = sessao.id;
+    mostrarNavSessao();
+    mostrar("sessao");
+    iniciarPollingSessao();
+  } catch (err) {
+    if (err.status === 409) {
+      erroEl.textContent = `${err.message} Entrando na fila de espera...`;
+      setTimeout(() => entrarFila(), 1200);
+    } else {
+      erroEl.textContent = err.message;
+    }
+  }
+});
+
+// ---------------- SESSAO ATIVA ----------------
+
+function atualizarUISessao(s) {
+  const pct = Math.min(Math.max(s.bateria_atual_percent, 0), 100);
+  document.getElementById("sessao-bateria-fill").parentElement.style.background =
+    `conic-gradient(var(--verde) ${pct * 3.6}deg, var(--borda) 0deg)`;
+  document.getElementById("sessao-bateria-texto").textContent = `${pct.toFixed(0)}%`;
+  document.getElementById("sessao-potencia").textContent = `${s.potencia_alocada_kw} kW`;
+  document.getElementById("sessao-kwh").textContent = `${Number(s.kwh_consumido).toFixed(2)} kWh`;
+  document.getElementById("sessao-custo").textContent = formatarMoeda(s.custo_total);
+  document.getElementById("sessao-tempo").textContent =
+    s.tempo_estimado_restante_min != null ? `${Math.round(s.tempo_estimado_restante_min)} min` : "--";
+}
+
+function mostrarModalConclusao(dados) {
+  document.getElementById("conclusao-kwh").textContent = `${Number(dados.kwh_consumido).toFixed(2)} kWh`;
+  document.getElementById("conclusao-custo").textContent = formatarMoeda(dados.custo_total);
+  const ecoEl = document.getElementById("conclusao-eco");
+  ecoEl.textContent =
+    dados.co2_evitado_kg > 0
+      ? `🌱 ${Number(dados.co2_evitado_kg).toFixed(3)} kg de CO2 evitado com energia solar`
+      : "";
+  document.getElementById("modal-conclusao").classList.remove("hidden");
+}
+
+document.getElementById("btn-fechar-modal-conclusao").addEventListener("click", () => {
+  document.getElementById("modal-conclusao").classList.add("hidden");
+});
+
+function iniciarPollingSessao() {
+  clearInterval(state.pollSessaoTimer);
+  const executar = async () => {
+    try {
+      const s = await api(`/api/sessoes/status/${state.sessaoAtivaId}`);
+      if (s.status !== "carregando") {
+        clearInterval(state.pollSessaoTimer);
+        state.sessaoAtivaId = null;
+        esconderNavSessao();
+        mostrarModalConclusao(s);
+        await atualizarVeiculoAtual();
+        mostrar("home");
+        loadHome();
+        return;
+      }
+      atualizarUISessao(s);
+    } catch (err) {
+      clearInterval(state.pollSessaoTimer);
+    }
+  };
+  executar();
+  state.pollSessaoTimer = setInterval(executar, 4000);
+}
+
+async function atualizarVeiculoAtual() {
+  const lista = await api("/api/veiculos");
+  state.veiculos = lista;
+  state.veiculoAtual = lista.find((v) => v.id === state.veiculoAtual.id) || lista[0] || null;
+}
+
+document.getElementById("btn-parar-sessao").addEventListener("click", async () => {
+  try {
+    const resp = await api(`/api/sessoes/${state.sessaoAtivaId}/parar`, { method: "POST" });
+    clearInterval(state.pollSessaoTimer);
+    state.sessaoAtivaId = null;
+    esconderNavSessao();
+    mostrarModalConclusao(resp);
+    await atualizarVeiculoAtual();
+    mostrar("home");
+    loadHome();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// ---------------- FILA DE ESPERA ----------------
+
+async function entrarFila() {
+  try {
+    await api("/api/fila/entrar", { method: "POST", body: { veiculo_id: state.veiculoAtual.id } });
+    mostrar("fila");
+    iniciarPollingFila();
+  } catch (err) {
+    alert(err.message);
+    mostrar("home");
+  }
+}
+
+function atualizarUIFila(f) {
+  document.getElementById("fila-posicao").textContent = f.posicao_fila;
+  document.getElementById("fila-prioridade").textContent = `prioridade ${rotuloPrioridade(f.prioridade).toLowerCase()}`;
+  document.getElementById("fila-previsao").textContent =
+    f.pessoas_a_frente > 0
+      ? `${f.pessoas_a_frente} na sua frente - previsão de ${f.previsao_espera_min} min`
+      : "você é o próximo!";
+
+  if (f.status === "notificada") {
+    clearInterval(state.pollFilaTimer);
+    alert("Uma estação está disponível para você! Você tem 10 minutos para ocupar. Escolha a estação na tela inicial.");
+    mostrar("home");
+    loadHome();
+  }
+}
+
+function iniciarPollingFila() {
+  clearInterval(state.pollFilaTimer);
+  const executar = async () => {
+    try {
+      const f = await api("/api/fila/posicao");
+      atualizarUIFila(f);
+    } catch (err) {
+      clearInterval(state.pollFilaTimer);
+      mostrar("home");
+      loadHome();
+    }
+  };
+  executar();
+  state.pollFilaTimer = setInterval(executar, 5000);
+}
+
+document.getElementById("btn-atualizar-fila").addEventListener("click", async () => {
+  try {
+    const f = await api("/api/fila/posicao");
+    atualizarUIFila(f);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// ---------------- HISTORICO ----------------
+
+async function carregarHistorico() {
+  const lista = await api("/api/sessoes/historico");
+  const container = document.getElementById("lista-historico");
+  if (lista.length === 0) {
+    container.innerHTML = `<p class="vazio">Nenhuma sessão ainda</p>`;
+    return;
+  }
+  container.innerHTML = lista
+    .map((s) => {
+      const data = new Date(s.inicio).toLocaleString("pt-BR");
+      return `
+      <div class="historico-item">
+        <div class="topo">
+          <span>${data}</span>
+          <span>${formatarMoeda(s.custo_total)}</span>
+        </div>
+        <div class="detalhes">
+          <span>${Number(s.kwh_consumido).toFixed(2)} kWh</span>
+          <span>status: ${s.status}</span>
+          <span class="eco">${Number(s.co2_evitado_kg).toFixed(3)} kg CO2 evitado</span>
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
+// ---------------- NAVEGACAO ----------------
+
+document.querySelectorAll(".nav-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const destino = btn.dataset.nav;
+    if (destino === "home") {
+      mostrar("home");
+      loadHome();
+    } else if (destino === "sessao") {
+      mostrar("sessao");
+      iniciarPollingSessao();
+    } else if (destino === "historico") {
+      mostrar("historico");
+      carregarHistorico();
+    }
+  });
+});
+
+function mostrarNavSessao() {
+  document.getElementById("nav-btn-sessao").classList.remove("hidden");
+}
+
+function esconderNavSessao() {
+  document.getElementById("nav-btn-sessao").classList.add("hidden");
+}
+
+// ---------------- BOOTSTRAP ----------------
+
+// So usada no login: decide pra qual tela ir de primeira (recarga em
+// andamento, fila, ou home). Depois disso a navegacao e livre - "Inicio"
+// sempre mostra a tela normal, e o botao "Carregando" (quando aparece)
+// leva de volta pro acompanhamento da recarga.
+async function irParaInicio() {
+  esconderNavSessao();
+
+  try {
+    const ativas = await api("/api/sessoes/ativas");
+    const minha = ativas.find((s) => state.veiculos.some((v) => v.id === s.veiculo_id));
+    if (minha) {
+      state.sessaoAtivaId = minha.id;
+      state.veiculoAtual = state.veiculos.find((v) => v.id === minha.veiculo_id) || state.veiculoAtual;
+      mostrarNavSessao();
+      mostrar("sessao");
+      iniciarPollingSessao();
+      return;
+    }
+  } catch (err) { /* segue fluxo normal */ }
+
+  try {
+    const posicao = await api("/api/fila/posicao");
+    mostrar("fila");
+    atualizarUIFila(posicao);
+    iniciarPollingFila();
+    return;
+  } catch (err) { /* nao esta na fila */ }
+
+  await loadHome();
+  mostrar("home");
+}
+
+async function depoisDoLogin() {
+  try {
+    state.veiculos = await api("/api/veiculos");
+  } catch (err) {
+    document.getElementById("btn-sair").click();
+    return;
+  }
+
+  if (state.veiculos.length === 0) {
+    document.getElementById("btn-cancelar-veiculo").classList.add("hidden");
+    mostrar("veiculo");
+    return;
+  }
+  state.veiculoAtual = state.veiculos[0];
+  await irParaInicio();
+}
+
+(function init() {
+  if (state.token && state.usuario) {
+    depoisDoLogin();
+  } else {
+    mostrar("auth");
+  }
+})();

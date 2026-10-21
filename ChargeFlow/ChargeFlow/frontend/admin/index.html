@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ChargeFlow Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <section id="tela-login" class="login-wrap">
+    <form id="form-login" class="login-card">
+      <div class="brand"><span class="brand-dot"></span>ChargeFlow <small>admin</small></div>
+      <label>Email
+        <input type="email" id="login-email" required placeholder="admin@chargeflow.com" />
+      </label>
+      <label>Senha
+        <input type="password" id="login-senha" required placeholder="********" />
+      </label>
+      <p class="erro" id="login-erro"></p>
+      <button type="submit" class="btn-primary">Entrar</button>
+    </form>
+  </section>
+
+  <!-- PAINEL ADMIN -->
+  <div id="painel" class="painel hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-dot"></span>ChargeFlow</div>
+      <nav>
+        <button class="nav-item active" data-secao="visao-geral">Visão geral</button>
+        <button class="nav-item" data-secao="usuarios">Usuários</button>
+        <button class="nav-item" data-secao="consumo">Consumo</button>
+        <button class="nav-item" data-secao="sustentabilidade">Sustentabilidade</button>
+        <button class="nav-item" data-secao="simulacao">Simular cenário</button>
+        <button class="nav-item" data-secao="ranking">Ranking</button>
+        <button class="nav-item" data-secao="historico">Histórico</button>
+      </nav>
+      <button id="btn-sair" class="btn-sair">Sair</button>
+    </aside>
+
+    <main class="conteudo">
+      <div id="erro-geral" class="erro-banner hidden">
+        <span id="erro-geral-texto"></span>
+        <button id="erro-geral-tentar" class="link-btn">tentar de novo</button>
+      </div>
+
+      <!-- VISAO GERAL -->
+      <section id="secao-visao-geral" class="secao">
+        <div class="secao-cabecalho">
+          <h1>Visão geral</h1>
+          <span id="vg-pico-tag" class="tag hidden">horário de pico (-20% potência)</span>
+        </div>
+
+        <div class="cartao potencia-card">
+          <div class="potencia-topo">
+            <span class="potencia-label">Potência do prédio</span>
+            <span id="vg-potencia-valores" class="potencia-valores">0 / 0 kW</span>
+          </div>
+          <div class="meter">
+            <div id="vg-potencia-fill" class="meter-fill"></div>
+          </div>
+        </div>
+
+        <div class="grid-tiles">
+          <div class="stat-tile"><span class="stat-label">Estações disponíveis</span><span id="vg-disponiveis" class="stat-valor good">0</span></div>
+          <div class="stat-tile"><span class="stat-label">Estações ocupadas</span><span id="vg-ocupadas" class="stat-valor">0</span></div>
+          <div class="stat-tile"><span class="stat-label">Em manutenção/offline</span><span id="vg-indisponiveis" class="stat-valor muted">0</span></div>
+        </div>
+
+        <h2>Mapa de vagas</h2>
+        <div id="mapa-vagas" class="mapa-vagas"></div>
+      </section>
+
+      <!-- USUARIOS -->
+      <section id="secao-usuarios" class="secao hidden">
+        <h1>Usuários</h1>
+        <div class="grid-tiles" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="stat-tile"><span class="stat-label">Total de usuários cadastrados</span><span id="us-total" class="stat-valor">0</span></div>
+          <div class="stat-tile"><span class="stat-label">Empresas diferentes</span><span id="us-empresas" class="stat-valor">0</span></div>
+        </div>
+        <div class="cartao">
+          <div id="usuarios-lista" class="usuarios-lista"></div>
+        </div>
+      </section>
+
+      <!-- CONSUMO -->
+      <section id="secao-consumo" class="secao hidden">
+        <div class="secao-cabecalho">
+          <h1>Consumo</h1>
+          <div class="periodo-seletor">
+            <button class="periodo-btn active" data-periodo="dia">Dia</button>
+            <button class="periodo-btn" data-periodo="semana">Semana</button>
+            <button class="periodo-btn" data-periodo="mes">Mês</button>
+          </div>
+        </div>
+        <div class="grid-tiles">
+          <div class="stat-tile"><span class="stat-label">kWh total</span><span id="consumo-kwh" class="stat-valor">0</span></div>
+          <div class="stat-tile"><span class="stat-label">Custo total</span><span id="consumo-custo" class="stat-valor">R$ 0,00</span></div>
+        </div>
+        <div class="cartao chart-card">
+          <canvas id="grafico-consumo" height="110"></canvas>
+        </div>
+      </section>
+
+      <!-- SUSTENTABILIDADE -->
+      <section id="secao-sustentabilidade" class="secao hidden">
+        <h1>Sustentabilidade</h1>
+        <div class="grid-tiles tres">
+          <div class="stat-tile"><span class="stat-label">kWh total</span><span id="sus-kwh-total" class="stat-valor">0</span></div>
+          <div class="stat-tile"><span class="stat-label">kWh solar</span><span id="sus-kwh-solar" class="stat-valor good">0</span></div>
+          <div class="stat-tile"><span class="stat-label">CO2 evitado</span><span id="sus-co2" class="stat-valor good">0 kg</span></div>
+        </div>
+        <div class="cartao">
+          <div class="potencia-topo">
+            <span class="potencia-label">% de energia renovável (solar)</span>
+            <span id="sus-percentual-texto" class="potencia-valores">0%</span>
+          </div>
+          <div class="meter">
+            <div id="sus-percentual-fill" class="meter-fill eco"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SIMULACAO -->
+      <section id="secao-simulacao" class="secao hidden">
+        <div class="secao-cabecalho">
+          <h1>Simular cenário</h1>
+          <button id="btn-preset-5" class="link-btn">gerar 5 carros de exemplo</button>
+        </div>
+        <p class="subtitulo">Simule vários carros chegando ao mesmo tempo e veja o algoritmo de distribuição de potência decidir quem recebe mais.</p>
+
+        <table class="tabela-simulacao">
+          <thead>
+            <tr><th>Nome</th><th>Bateria (%)</th><th>Potência solicitada (kW)</th><th></th></tr>
+          </thead>
+          <tbody id="sim-linhas"></tbody>
+        </table>
+        <button id="btn-add-carro" class="link-btn">+ adicionar carro</button>
+
+        <div class="acoes-simulacao">
+          <button id="btn-simular" class="btn-primary">Simular cenário</button>
+        </div>
+
+        <div id="sim-resultado" class="cartao hidden">
+          <div class="potencia-topo">
+            <span class="potencia-label">Potência disponível para os carros simulados</span>
+            <span id="sim-disponivel-texto" class="potencia-valores">0 kW</span>
+          </div>
+          <div id="sim-barras" class="sim-barras"></div>
+        </div>
+      </section>
+
+      <!-- RANKING -->
+      <section id="secao-ranking" class="secao hidden">
+        <h1>Ranking de consumo</h1>
+        <p class="subtitulo">Os 3 maiores consumidores ganham destaque, e você pode conceder um crédito de saldo (recarga grátis) como prêmio.</p>
+        <div class="cartao">
+          <div id="ranking-lista" class="ranking-lista"></div>
+        </div>
+      </section>
+
+      <!-- HISTORICO -->
+      <section id="secao-historico" class="secao hidden">
+        <h1>Histórico de recargas</h1>
+        <p class="subtitulo">Últimas recargas finalizadas no prédio, com quem usou e quanto gastou.</p>
+        <div class="cartao" style="overflow-x:auto">
+          <table class="tabela-historico">
+            <thead>
+              <tr>
+                <th>Data</th><th>Usuário</th><th>Veículo</th><th>Estação</th>
+                <th>kWh</th><th>Custo</th><th>CO2 evitado</th>
+              </tr>
+            </thead>
+            <tbody id="historico-linhas"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- MODAL: CONCEDER PREMIO -->
+    <div id="modal-premio" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-topo">
+          <h2>🏆 Conceder prêmio</h2>
+          <button id="btn-fechar-modal-premio" class="link-btn">fechar</button>
+        </div>
+        <p class="subtitulo" id="premio-usuario-nome"></p>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--texto-secundario)">
+          Valor do crédito (R$)
+          <input type="number" id="premio-valor" min="1" step="1" value="30" style="padding:10px;border-radius:8px;border:1px solid var(--gridline);background:var(--surface-2);color:var(--texto);font-size:15px" />
+        </label>
+        <p class="erro" id="premio-erro" style="margin-top:10px"></p>
+        <button id="btn-confirmar-premio" class="btn-primary" style="width:100%;margin-top:14px">Conceder crédito</button>
+        <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--texto-mudo);font-size:12px">
+          <div style="flex:1;height:1px;background:var(--gridline)"></div>ou<div style="flex:1;height:1px;background:var(--gridline)"></div>
+        </div>
+        <button id="btn-confirmar-recarga-gratis" class="btn-primary" style="width:100%;background:var(--verde-good)">🎁 Dar recarga grátis completa</button>
+      </div>
+    </div>
+
+    <!-- MODAL: DETALHES DA VAGA -->
+    <div id="modal-vaga" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-topo">
+          <h2 id="modal-vaga-titulo">Estação</h2>
+          <button id="btn-fechar-modal-vaga" class="link-btn">fechar</button>
+        </div>
+        <div id="modal-vaga-conteudo"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/simulacao.js"></script>
+  <script src="js/usuarios.js"></script>
+</body>
+</html>

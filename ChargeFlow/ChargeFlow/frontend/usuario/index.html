@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>ChargeFlow</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>ChargeFlow</span>
+      </div>
+      <button id="btn-sair" class="link-btn hidden">Sair</button>
+    </header>
+
+    <main id="conteudo">
+
+      <!-- TELA: AUTENTICACAO -->
+      <section id="tela-auth" class="tela">
+        <div class="auth-tabs">
+          <button class="tab-btn active" data-tab="login">Entrar</button>
+          <button class="tab-btn" data-tab="registro">Criar conta</button>
+        </div>
+
+        <form id="form-login" class="form">
+          <label>Email
+            <input type="email" id="login-email" required placeholder="você@empresa.com" />
+          </label>
+          <label>Senha
+            <input type="password" id="login-senha" required placeholder="********" />
+          </label>
+          <p class="erro" id="login-erro"></p>
+          <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+
+        <form id="form-registro" class="form hidden">
+          <label>Nome
+            <input type="text" id="reg-nome" required placeholder="Seu nome" />
+          </label>
+          <label>Email
+            <input type="email" id="reg-email" required placeholder="você@empresa.com" />
+          </label>
+          <label>Senha
+            <input type="password" id="reg-senha" required minlength="6" placeholder="mínimo 6 caracteres" />
+          </label>
+          <label>Empresa
+            <input type="text" id="reg-empresa" placeholder="Opcional" />
+          </label>
+          <label>Telefone
+            <input type="text" id="reg-telefone" placeholder="Opcional" />
+          </label>
+          <p class="erro" id="reg-erro"></p>
+          <button type="submit" class="btn-primary">Criar conta</button>
+        </form>
+      </section>
+
+      <!-- TELA: CADASTRO DE VEICULO (primeiro uso) -->
+      <section id="tela-veiculo" class="tela hidden">
+        <h2>Cadastre seu veículo</h2>
+        <p class="subtitulo">Antes de carregar, precisamos saber qual carro você dirige.</p>
+        <form id="form-veiculo" class="form">
+          <label>Placa
+            <input type="text" id="v-placa" required placeholder="ABC1D23" />
+          </label>
+          <label>Modelo
+            <input type="text" id="v-modelo" required placeholder="Model 3" />
+          </label>
+          <label>Marca
+            <input type="text" id="v-marca" placeholder="Tesla" />
+          </label>
+          <label>Capacidade da bateria (kWh)
+            <input type="number" id="v-capacidade" required min="1" step="0.1" placeholder="60" />
+          </label>
+          <label>Bateria atual (%)
+            <input type="number" id="v-bateria" required min="0" max="100" step="1" value="50" />
+          </label>
+          <label>Carregar até (%)
+            <input type="number" id="v-limite-percent" min="1" max="100" step="1" value="80" />
+          </label>
+          <p class="erro" id="v-erro"></p>
+          <button type="submit" class="btn-primary">Salvar veículo</button>
+        </form>
+        <button id="btn-cancelar-veiculo" class="link-btn hidden">cancelar</button>
+      </section>
+
+      <!-- TELA: HOME -->
+      <section id="tela-home" class="tela hidden">
+        <div class="card saldo-card">
+          <div class="resumo-linha">
+            <span>Seu saldo</span>
+            <button id="btn-recarregar-saldo" class="link-btn">+ recarregar</button>
+          </div>
+          <div class="saldo-valor" id="home-saldo-valor">R$ 0,00</div>
+          <p class="subtitulo sem-margem" id="home-estimativa-texto"></p>
+        </div>
+
+        <div class="secao-titulo">
+          <h2>Seu veículo</h2>
+          <button id="btn-trocar-veiculo" class="link-btn">+ novo veículo</button>
+        </div>
+        <div id="home-veiculo-card" class="card veiculo-card"></div>
+
+        <div class="secao-titulo">
+          <h2>Estações disponíveis</h2>
+          <button id="btn-atualizar-estacoes" class="link-btn">atualizar</button>
+        </div>
+        <div id="lista-estacoes" class="lista-estacoes"></div>
+
+        <button id="btn-liberar-entrada" class="btn-secundario">Liberar entrada</button>
+      </section>
+
+      <!-- TELA: PREFERENCIAS DA RECARGA -->
+      <section id="tela-preferencias" class="tela hidden">
+        <h2>Configurar recarga</h2>
+        <p class="subtitulo" id="pref-estacao-nome"></p>
+        <div class="card saldo-info-card">
+          <div class="resumo-linha">
+            <span>Seu saldo</span>
+            <span id="pref-saldo-valor" class="valor-destaque">R$ 0,00</span>
+          </div>
+          <p class="subtitulo sem-margem" id="pref-estimativa-texto"></p>
+        </div>
+        <form id="form-preferencias" class="form">
+          <label>Carregar até (%)
+            <input type="number" id="pref-limite-percent" min="1" max="100" step="1" />
+          </label>
+          <p class="dica">A recarga usa seu saldo automaticamente e para sozinha se o saldo acabar antes de chegar nesse %.</p>
+          <p class="erro" id="pref-erro"></p>
+          <button type="submit" class="btn-primary">Iniciar recarga</button>
+        </form>
+        <button id="btn-cancelar-preferencias" class="link-btn">cancelar</button>
+      </section>
+
+      <!-- TELA: RECARREGAR SALDO -->
+      <section id="tela-recarga-saldo" class="tela hidden">
+        <h2>Recarregar saldo</h2>
+        <p class="subtitulo">Saldo atual: <strong id="recarga-saldo-atual">R$ 0,00</strong></p>
+        <form id="form-recarga-saldo" class="form">
+          <label>Valor (R$)
+            <input type="number" id="recarga-valor" min="1" step="1" placeholder="50" required />
+          </label>
+          <div class="valores-rapidos">
+            <button type="button" class="chip-btn" data-valor="20">R$ 20</button>
+            <button type="button" class="chip-btn" data-valor="50">R$ 50</button>
+            <button type="button" class="chip-btn" data-valor="100">R$ 100</button>
+          </div>
+          <p class="erro" id="recarga-erro"></p>
+          <button type="submit" class="btn-primary">Confirmar recarga</button>
+        </form>
+        <button id="btn-cancelar-recarga" class="link-btn">cancelar</button>
+      </section>
+
+      <!-- TELA: SESSAO ATIVA -->
+      <section id="tela-sessao" class="tela hidden">
+        <h2>Carregando</h2>
+        <div class="card sessao-card">
+          <div class="bateria-visual">
+            <div class="bateria-visual-fill" id="sessao-bateria-fill"></div>
+            <span id="sessao-bateria-texto">0%</span>
+          </div>
+          <div class="grid-status">
+            <div><span class="label">Potência alocada</span><span id="sessao-potencia" class="valor">0 kW</span></div>
+            <div><span class="label">kWh consumido</span><span id="sessao-kwh" class="valor">0</span></div>
+            <div><span class="label">Custo atual</span><span id="sessao-custo" class="valor">R$ 0,00</span></div>
+            <div><span class="label">Tempo restante</span><span id="sessao-tempo" class="valor">--</span></div>
+          </div>
+        </div>
+        <button id="btn-parar-sessao" class="btn-secundario">Liberar saída / Parar recarga</button>
+      </section>
+
+      <!-- TELA: FILA DE ESPERA -->
+      <section id="tela-fila" class="tela hidden">
+        <h2>Fila de espera</h2>
+        <div class="card fila-card">
+          <p>Posição na fila</p>
+          <div class="fila-posicao" id="fila-posicao">-</div>
+          <p><span id="fila-prioridade" class="tag"></span></p>
+          <p id="fila-previsao" class="subtitulo"></p>
+        </div>
+        <button id="btn-atualizar-fila" class="btn-secundario">Atualizar</button>
+      </section>
+
+      <!-- TELA: HISTORICO -->
+      <section id="tela-historico" class="tela hidden">
+        <h2>Histórico</h2>
+        <div id="lista-historico" class="lista-historico"></div>
+      </section>
+
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav hidden">
+      <button data-nav="home" class="nav-btn active">Início</button>
+      <button id="nav-btn-sessao" data-nav="sessao" class="nav-btn hidden">
+        <span class="nav-dot"></span>Carregando
+      </button>
+      <button data-nav="historico" class="nav-btn">Histórico</button>
+    </nav>
+
+    <!-- MODAL: DETALHES DA ESTACAO -->
+    <div id="modal-estacao" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-topo">
+          <h2 id="modal-estacao-nome">Estação</h2>
+          <button id="btn-fechar-modal-estacao" class="link-btn">fechar</button>
+        </div>
+        <p class="subtitulo sem-margem" id="modal-estacao-local"></p>
+        <div class="grid-status" style="margin-top:14px">
+          <div><span class="label">Status</span><span id="modal-estacao-status" class="valor">-</span></div>
+          <div><span class="label">Potência em uso</span><span id="modal-estacao-potencia" class="valor">-</span></div>
+        </div>
+        <p class="dica" style="margin-top:14px">Por privacidade, não mostramos dados de quem está carregando (bateria, custo ou tempo restante).</p>
+      </div>
+    </div>
+
+    <!-- MODAL: RECARGA CONCLUIDA -->
+    <div id="modal-conclusao" class="modal-overlay hidden">
+      <div class="modal-card" style="text-align:center">
+        <div style="font-size:44px;line-height:1">🎉</div>
+        <h2 style="margin-top:10px">Recarga concluída!</h2>
+        <div class="grid-status" style="margin-top:16px;text-align:left">
+          <div><span class="label">kWh consumido</span><span id="conclusao-kwh" class="valor">0</span></div>
+          <div><span class="label">Custo total</span><span id="conclusao-custo" class="valor">R$ 0,00</span></div>
+        </div>
+        <p class="conclusao-eco" id="conclusao-eco"></p>
+        <button id="btn-fechar-modal-conclusao" class="btn-primary">Entendi!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

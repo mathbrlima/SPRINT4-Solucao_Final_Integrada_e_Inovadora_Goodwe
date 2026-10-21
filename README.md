@@ -152,7 +152,7 @@ O desafio pede geração, armazenamento e uso inteligente de energia renovável 
 
 Quanto à tecnologia GoodWe, o sistema foi desenhado para receber a telemetria de um inversor híbrido e de uma bateria GoodWe (geração fotovoltaica, estado de carga e consumo do prédio) e usar esses dados como entrada do algoritmo, de modo que a potência liberada para os carros acompanhe a geração solar disponível. Nesta entrega, a geração solar entra no sistema como parâmetro de simulação (30% do consumo); a leitura em tempo real de um inversor e de uma bateria GoodWe é a evolução natural do projeto e o ponto de integração já está previsto na arquitetura.
 
-Conexão com a disciplina: o projeto aplica priorização e distribuição de um recurso limitado (a potência do prédio) no simulador de cenários, modelagem de curvas de potência e cálculo de energia por integral definida (Sprint 3), comunicação entre interface e servidor por meio de uma aplicação web, e visualização de dados nos gráficos de consumo, no ranking e no painel de sustentabilidade.
+Conexão com a disciplina: o projeto aplica priorização e distribuição de um recurso limitado (a potência do prédio) no simulador de cenários, modelagem de curvas de potência e cálculo de energia por integral definida, comunicação entre interface e servidor por meio de uma aplicação web, e visualização de dados nos gráficos de consumo, no ranking e no painel de sustentabilidade.
 
 ### Fundamentação matemática
 
@@ -177,8 +177,8 @@ O frontend foi construído com JavaScript, HTML e CSS, a aplicação está hospe
 ├── README.md
 ├── ChargeFlow/
 │   └── ChargeFlow/
-│       └── gitignore.
-│       └── requiriments
+│       └── .gitignore
+│       └── requiriments.txt
 │       └── app/
 │       └── frontend/
 │       └── tools/

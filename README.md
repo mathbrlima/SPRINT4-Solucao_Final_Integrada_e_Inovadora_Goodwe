@@ -154,9 +154,9 @@ Quanto à tecnologia GoodWe, o sistema foi desenhado para receber a telemetria d
 
 Conexão com a disciplina: o projeto aplica priorização e distribuição de um recurso limitado (a potência do prédio) no simulador de cenários, modelagem de curvas de potência e cálculo de energia por integral definida (Sprint 3), comunicação entre interface e servidor por meio de uma aplicação web, e visualização de dados nos gráficos de consumo, no ranking e no painel de sustentabilidade.
 
-### Fundamentação matemática (opcional, da Sprint 3)
+### Fundamentação matemática
 
-Se a Sprint 3 de cálculo fizer parte do mesmo projeto, a energia diária de um posto é a integral da sua curva de potência. Para o Posto 1, P1(t) = 5 + 20·sen(πt/24) com 0 ≤ t ≤ 24 h, a energia é E1 = 120 + 960/π ≈ 425,6 kWh/dia. Para o Posto 2, P2(t) = 16 + 15·cos(π(t − 20)/12), o termo cossenoidal integra zero em um período completo e E2 = 384 kWh/dia. Isso assume P em kW. Remova esta seção se esses postos não forem os mesmos do ChargeFlow.
+A energia diária de um posto de recarga é a integral da sua curva de potência ao longo do dia, com P em kW e t em horas. Para o Posto 1, P1(t) = 5 + 20·sen(πt/24), com 0 ≤ t ≤ 24 h, a energia é E1 = 120 + 960/π ≈ 425,6 kWh/dia. Para o Posto 2, P2(t) = 16 + 15·cos(π(t − 20)/12), o termo cossenoidal integra zero em um período completo de 24 h, então E2 = 16 · 24 = 384 kWh/dia. O mesmo raciocínio vale para o ChargeFlow: o kWh de cada sessão de recarga é a integral da potência alocada ao longo do tempo em que o carro ficou conectado.
 
 ## 6. Avaliação crítica: sustentabilidade e inovação
 
@@ -175,6 +175,13 @@ O frontend foi construído com JavaScript, HTML e CSS, a aplicação está hospe
 ```
 /
 ├── README.md
+├── ChargeFlow/
+│   └── ChargeFlow/
+│       └── gitignore.
+│       └── requiriments
+│       └── app/
+│       └── frontend/
+│       └── tools/
 ├── docs/
 │   └── img/       capturas de tela do sistema funcionando
 ```

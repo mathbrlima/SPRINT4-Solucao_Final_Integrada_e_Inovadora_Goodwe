@@ -180,8 +180,8 @@ O frontend foi construído com JavaScript, HTML e CSS, a aplicação está hospe
 │       └── .gitignore
 │       └── requiriments.txt
 │       └── app/
-│       └── frontend/
-│       └── tools/
+│       └── frontend/          API em FastAPI (models, routers, schemas, services)
+│       └── tools/             app do motorista (usuario/) e painel (admin/)
 ├── docs/
 │   └── img/       capturas de tela do sistema funcionando
 ```
